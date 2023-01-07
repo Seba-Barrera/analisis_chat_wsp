@@ -1147,7 +1147,7 @@ def main():
  #-------------------------------------------------------------------------------------------------------------
 
         # titulo del capitulo 
-        st.markdown('### 9. Quienes Envian mas mensajes encadenados')
+        st.markdown('### 9. Quienes Envian mas mensajes encadenados/consecutivos')
     
         # Generar Slider 
         slider11 = st.slider(
