@@ -1,4 +1,3 @@
-
 ###############################################################################################################
 # App de analisis de chat wsp
 ###############################################################################################################
@@ -74,7 +73,7 @@ def main():
     
     # autoria 
     st.sidebar.markdown('**Autor: [Sebastian Barrera](https://www.linkedin.com/in/sebasti%C3%A1n-nicolas-barrera-varas-70699a28)**')
-    st.sidebar.markdown('Version SB_V20221225')
+    st.sidebar.markdown('Version SB_V20230311')
     
     # tutoriales de como descargar chats de wsp  
     st.sidebar.markdown('*[Como descargar Chat en Android](https://www.mundodeportivo.com/uncomo/tecnologia/articulo/como-descargar-las-conversaciones-de-whatsapp-en-android-35091.html)*')
@@ -91,14 +90,12 @@ def main():
  # [01.1] Crear funcion 
  #-------------------------------------------------------------------------------------------------------------   
 
-        
-        # Definir funcion para tratamiendo de archivo y generacion de DFs
+        #............................................................
+        # Funcion de tomar archivo wsp y pasar a df 
         @st.cache(suppress_st_warning=True) # https://docs.streamlit.io/library/advanced-features/caching
-        def tratamiento_txt_df(archivo):       
-            
-            #__________________________________________________________________________________________________
-            # Lectura de archivo txt 
-            
+        def archivo_wsp_df(archivo):
+
+            # lectura de df
             df = pd.read_table(archivo, delimiter="$$$$$$xxt$$$yzz$$$$//",header=None)
             df.columns=['Texto']
 
@@ -113,153 +110,114 @@ def main():
                 )
 
             # encontrar primer caracter de fecha
-            df['Hito_fecha1']=df.apply(lambda x: x.Texto.find(x.sep_fecha),axis=1)
+            df['Hito_fecha1']=df.apply(lambda x: x['Texto'].find(x['sep_fecha']),axis=1)
 
             # encontrar segundo caracter de fecha
-            df['Hito_fecha2']=df.apply(lambda x: x.Texto.find(x.sep_fecha,x.Hito_fecha1+1),axis=1)
+            df['Hito_fecha2']=df.apply(lambda x: x['Texto'].find(x['sep_fecha'],x['Hito_fecha1']+1),axis=1)
 
             # encontrar dia             
             df['texto_dia'] = df.apply(lambda x: 
-                x.Texto[0] if x.Hito_fecha1==1 else
-                x.Texto[(x.Hito_fecha1-2):x.Hito_fecha1] if x.Hito_fecha1>=2 
-                else 'NA' , axis=1 
-                )
-
-            # depurar texto dia para corroborar que sea numerico 
-            df['texto_dia'] = df.apply(lambda x: 
-                x.texto_dia if x.texto_dia.isnumeric()
+                x['Texto'][0] if x['Hito_fecha1']==1 else
+                x['Texto'][(x['Hito_fecha1']-2):x['Hito_fecha1']] if x['Hito_fecha1']>=2 
                 else 'NA' , axis=1 
                 )
             
-            # corregir casos donde solo tenga un digito
-            df['texto_dia'] = df.apply(lambda x: 
-                '0'+x.texto_dia if len(x.texto_dia)==1
-                else x.texto_dia , axis=1 
-                )
+            # quedarse con registros donde 'texto_dia' SI es numerico
+            df = df[df['texto_dia'].astype(str).str.isnumeric()]
 
             # encontrar mes 
             df['texto_mes'] = df.apply(lambda x: 
-                x.Texto[(x.Hito_fecha1+1):x.Hito_fecha2] if x.Hito_fecha1>=1 
-                else 'NA' , axis=1 
-                )
-
-            # depurar texto mes para corroborar que sea numerico 
-            df['texto_mes'] = df.apply(lambda x: 
-                x.texto_mes if x.texto_mes.isnumeric()
+                x['Texto'][(x['Hito_fecha1']+1):x['Hito_fecha2']] if x['Hito_fecha1']>=1 
                 else 'NA' , axis=1 
                 )
             
-            # corregir casos donde solo tenga un digito
-            df['texto_mes'] = df.apply(lambda x: 
-                '0'+x.texto_mes if len(x.texto_mes)==1
-                else x.texto_mes , axis=1 
-                )
+            # quedarse con registros donde 'texto_mes' SI es numerico
+            df = df[df['texto_mes'].astype(str).str.isnumeric()]
 
             # encontrar año 
             df['texto_ano'] = df.apply(lambda x: 
-                x.Texto[(x.Hito_fecha2+1):(x.Hito_fecha2+5)] if x.Hito_fecha1>=1 
+                x['Texto'][(x['Hito_fecha2']+1):(x['Hito_fecha2']+5)] if x['Hito_fecha1']>=1 
                 else 'NA' , axis=1 
                 )
 
             # depurar año en caso que solo sean 2 digitos 
             df['texto_ano2'] = df.apply(lambda x: 
-                x.texto_ano if x.texto_ano.isnumeric() and x.Hito_fecha1>=1  else 
-                '20'+x.texto_ano[0:2] if x.Hito_fecha1>=1 
+                x['texto_ano'] if x['texto_ano'].isnumeric() and x['Hito_fecha1']>=1  else 
+                '20'+x['texto_ano'][0:2] if x['Hito_fecha1']>=1 
                 else 'NA' , axis=1 
                 )
-
-            # depurar texto ano para corroborar que sea numerico 
-            df['texto_ano2'] = df.apply(lambda x: 
-                x.texto_ano2 if x.texto_ano2.isnumeric()
-                else 'NA' , axis=1 
-                )
+            
+            # quedarse con registros donde 'texto_ano2' SI es numerico
+            df = df[df['texto_ano2'].astype(str).str.isnumeric()]
 
             # encontrar primer caracter de fecha
             df['Hito_hora']=df['Texto'].apply(lambda x: x.find(':'))
 
             # encontrar hora
             df['texto_hora'] = df.apply(lambda x: 
-                x.Texto[(x.Hito_hora-2):x.Hito_hora] if x.Hito_hora>=2 and x.Texto[(x.Hito_hora-2):x.Hito_hora].isnumeric() else 
-                x.Texto[(x.Hito_hora-1):x.Hito_hora] if x.Hito_hora>=2 
+                x['Texto'][(x['Hito_hora']-2):x['Hito_hora']] if x['Hito_hora']>=2 and x['Texto'][(x['Hito_hora']-2):x['Hito_hora']].isnumeric() else 
+                x['Texto'][(x['Hito_hora']-1):x['Hito_hora']] if x['Hito_hora']>=2 
                 else 'NA' , axis=1 
                 )
-
-            # depurar texto hora para corroborar que sea numerico 
-            df['texto_hora'] = df.apply(lambda x: 
-                x.texto_hora if x.texto_hora.isnumeric()
-                else 'NA' , axis=1 
+                
+            # ecnontrar hito donde esta el resto del texto
+            df['Hito_resto']=df.apply(lambda x: 
+                2+x['Texto'].find('] ',x['Hito_hora']+1) if x['Texto'].find('] ',x['Hito_hora']+1)>0 and x['Texto'].find('- ',x['Hito_hora']+1)>0 and x['Texto'].find('] ',x['Hito_hora']+1) < x['Texto'].find('- ',x['Hito_hora']+1) else 
+                2+x['Texto'].find('- ',x['Hito_hora']+1) if x['Texto'].find('- ',x['Hito_hora']+1)>0 else
+                2+x['Texto'].find('] ',x['Hito_hora']+1), axis=1 
                 )
-
-            # encontrar minuto           
-            df['texto_minuto'] = df.apply(lambda x: 
-                x.Texto[(x.Hito_hora+1):(x.Hito_hora+3)] if x.Hito_hora>=2 and x.Texto[(x.Hito_hora+1):(x.Hito_hora+3)].isnumeric() else
-                x.Texto[(x.Hito_hora+1):(x.Hito_hora+2)] if x.Hito_hora>=2
-                else 'NA' , axis=1 
-                )
-
-            # depurar texto minuto para corroborar que sea numerico 
-            df['texto_minuto'] = df.apply(lambda x: 
-                x.texto_minuto if x.texto_minuto.isnumeric()
-                else 'NA' , axis=1 
-                )
-
-            # rescatar hito de resto de mensaje ubicando espacio desde los : hacia adelante
-            df['Hito_resto']=df.apply(lambda x: x.Texto.find(' ',x.Hito_hora+1), axis=1 )
 
             # rescatar resto de mensaje 
-            df['texto_resto']=df.apply(lambda x: x.Texto[x.Hito_resto:666].strip(), axis=1 )
+            df['texto_resto']=df.apply(lambda x: x['Texto'][x['Hito_resto']:666].strip(), axis=1 )
 
             # rescatar hito emisor
-            df['Hito_emisor']=df.apply(lambda x: x.texto_resto.find(':'), axis=1 )
+            df['Hito_emisor']=df.apply(lambda x: x['texto_resto'].find(':'), axis=1 )
 
             # rescatar emisor 
             df['Emisor']=df.apply(lambda x: 
-                x.texto_resto[0:x.Hito_emisor] if x.Hito_emisor>=0 else
+                x['texto_resto'][0:x['Hito_emisor']] if x['Hito_emisor']>=0 else
                 'NA'
-                , axis=1)
-
-            # correccion de Emisor para casos con separacion de guion
-            df['Emisor']=df.apply(lambda x: 
-                x.Emisor[2:666] if x.Emisor[0:2]=='- ' else 
-                x.Emisor
                 , axis=1)
 
             # rescatar mensaje 
             df['Mensaje']=df.apply(lambda x: 
-                x.texto_resto[(x.Hito_emisor+1):666] if x.Hito_emisor>=0 else
+                x['texto_resto'][(x['Hito_emisor']+1):666] if x['Hito_emisor']>=0 else
                 'NA'
                 , axis=1)
 
-            # Construir campos para uso posterior 
-            df['Fecha']=df.apply(lambda x: x.texto_dia+'/'+x.texto_mes+'/'+x.texto_ano2, axis=1)
-            df['Hora']=df.apply(lambda x: x.texto_hora+':'+x.texto_minuto, axis=1)
-
-            #__________________________________________________________________________________________________
-            # Quedarse solo con campos relevantes y comenzar a crear otros campos 
-
-            # Quedarse solamente con registros correctos
-            df2 = df.loc[
-                (df['texto_dia']!='NA') & (df['Hito_emisor']>=0),
-                ['Fecha','Hora','Emisor','Mensaje']
-                ]
-            
-            
-                # llevar fecha de string a fecha    
-            df2['Fecha']=df2['Fecha'].apply(lambda x: 
-                10000*int(x[6:10])+
-                100*int(x[3:5])+
-                int(x[0:2])
+            # Construir campo de fecha
+            df['Fecha']=df.apply(lambda x: 
+                datetime(
+                year=int(x['texto_ano2']), 
+                month=int(x['texto_mes']), 
+                day=int(x['texto_dia'])
+                ) , axis=1
                 )
 
-            df2['Fecha']=df2['Fecha'].apply(lambda x: datetime.strptime(str(x), '%Y%m%d').strftime('%Y/%m/%d') )
+            # construir campo de hora
+            df['Hora']=df['texto_hora'].apply(lambda x: int(x) )
             
-            # crear campo de nro de palabras 
+            # Quedarse con datos relevantes
+            return df.loc[df['Emisor']!='NA',['Fecha','Hora','Emisor','Mensaje']]
+        
+        
+        
+        
+        #............................................................
+        # Funcion de tratamiento de datos
+        @st.cache(suppress_st_warning=True) # https://docs.streamlit.io/library/advanced-features/caching
+        def tratamiento_txt_df(archivo):     
+
+            #__________________________________________________________________________________________________
+            # crear df desde archivo de wsp y crear algunos campos
+            
+            # invocar funcion de tratamiento de datos
+            df2 = archivo_wsp_df(archivo)
+                
+            # crear campo de numero de palabras
             df2['Nro_Palabras']=df2['Mensaje'].apply(lambda x: len(x.split()) )
             
-            # crear campo de hora 
-            df2['Hora2']=df2['Hora'].apply(lambda x: int(x[0:2]) )
-            
-            # crear campo de dia de la semana 
+            # crear campo de dia de la semana segun la fecha
             df2['dia_sem']=df2['Fecha'].apply(lambda x: 
                 '1.Lunes' if pd.to_datetime(x).day_name()=='Monday' else
                 '2.Martes' if pd.to_datetime(x).day_name()=='Tuesday' else
@@ -271,16 +229,17 @@ def main():
                 ''  
                 )
             
+            
             #__________________________________________________________________________________________________
             # Generar DF agrupado  
-            
+
             df2_AGG_Resumen=df2.groupby(['Emisor']).agg(
                 N_Mensajes = pd.NamedAgg(column = 'Emisor', aggfunc = len),
                 Min_fecha = pd.NamedAgg(column = 'Fecha', aggfunc = min),
                 Max_fecha = pd.NamedAgg(column = 'Fecha', aggfunc = max),
                 N_Dias =  pd.NamedAgg(column = 'Fecha', aggfunc = lambda x: len(x.unique())),
-                Hora_Prom = pd.NamedAgg(column = 'Hora2', aggfunc = np.mean),
-                N_Palabras = pd.NamedAgg(column = 'Nro_Palabras', aggfunc = sum)                
+                Hora_Prom = pd.NamedAgg(column = 'Hora', aggfunc = np.mean),
+                N_Palabras = pd.NamedAgg(column = 'Nro_Palabras', aggfunc = sum)               
                 )
             df2_AGG_Resumen.reset_index(level=df2_AGG_Resumen.index.names, inplace=True) # pasar indices a columnas
 
@@ -300,10 +259,10 @@ def main():
             df2_AGG_Resumen['Hora_Prom']=df2_AGG_Resumen['Hora_Prom'].apply(lambda x: round(x,2))
 
             df2_AGG_Resumen['Rango_fecha']=df2_AGG_Resumen.apply(
-                lambda x: 
-                    (datetime.strptime(x['Max_fecha'],"%Y/%m/%d")-datetime.strptime(x['Min_fecha'],"%Y/%m/%d")).days
-                    , axis=1 
-                    )
+            lambda x: 
+                (x['Max_fecha']-x['Min_fecha']).days
+                , axis=1 
+                )
 
             df2_AGG_Resumen['Peso_Dias']=df2_AGG_Resumen.apply(lambda x: round(100*x['N_Dias']/(1+x['Rango_fecha']),2), axis=1)
 
@@ -312,8 +271,8 @@ def main():
 
             # agregar correlativo de top de quienes envian mas mensajes 
             df2_AGG_Resumen.insert(0, 'Top', range(1, 1 + len(df2_AGG_Resumen)))
-    
-    
+
+
             # Pegar en gran tabla el top de usuario (para efectos de filtro posteriores)
             df2=pd.merge(
                 df2, 
@@ -321,85 +280,82 @@ def main():
                 on='Emisor', 
                 how='left'
                 )
-    
+
             #__________________________________________________________________________________________________
             # Generar DF separado por palabras     
-            
+
             # separar df palabra por palabra 
             df2_palabras = df2[['Emisor','Mensaje']].assign(palabra=df2['Mensaje'].str.split()).explode('palabra')
 
             df2_palabras = df2_palabras.drop('Mensaje', axis = 1) # eliminar campo de mensaje 
-            
+
             # limpiar palabra 
             df2_palabras['palabra2']=df2_palabras['palabra'].apply(lambda x:
-                normalize( 
-                        'NFC', 
-                        re.sub(
-                            r"([^n\u0300-\u036f]|n(?!\u0303(?![\u0300-\u036f])))[\u0300-\u036f]+", 
-                            r"\1", 
-                            normalize( 
-                                        "NFD",
-                                        re.sub(r'[^\w\s]', '', x.lower().strip())
-                                        ), 
-                            0, 
-                            re.I
-                            )
-                        )
+                normalize(
+                'NFC',
+                re.sub(
+                    r"([^n\u0300-\u036f]|n(?!\u0303(?![\u0300-\u036f])))[\u0300-\u036f]+",
+                    r"\1",
+                    normalize(
+                    'NFD',
+                    re.sub(r'[^\w\s]', '', x.lower().strip())
+                    ),
+                    0,
+                    re.I
+                    )
+                )
                 )
 
 
             # Crear nuevo DF apilando el total 
-            df2_palabras = pd.concat(
-                [
-                    pd.DataFrame({
-                        'Emisor': 'TOTAL',
-                        'palabra':df2_palabras['palabra2'] 
-                        }),
-                    pd.DataFrame({
-                        'Emisor': df2_palabras['Emisor'] ,
-                        'palabra':df2_palabras['palabra2'] 
-                        })        
-                    ], 
-                axis=0, 
-                ignore_index=True
-                )
+            df2_palabras = pd.concat([
+                pd.DataFrame({
+                'Emisor': 'TOTAL',
+                'palabra':df2_palabras['palabra2'] 
+                }),
+                pd.DataFrame({
+                'Emisor': df2_palabras['Emisor'],
+                'palabra':df2_palabras['palabra2'] 
+                }) 
+                ],axis=0,ignore_index=True)
 
-        
+
             # nltk.download('stopwords') # necesario para tener listado de stopwords
             # https://discuss.streamlit.io/t/nltk-dependencies/5749/5
-            # stop_words = stopwords.words('spanish')             
+            # stop_words = stopwords.words('spanish')    
+                    
             stop_words = pd.read_csv('stop_words_spanish.txt', sep=" ", header=None,encoding='latin-1')
             stop_words = stop_words.iloc[:,0].tolist()
-            
+
             # crear marca de stopword
-            df2_palabras['StopWord']=df2_palabras['palabra'].apply(
-                lambda x: 1 if 
+            df2_palabras['StopWord']=df2_palabras['palabra'].apply(lambda x: 
+                1 if 
                 x in stop_words
                 or len(x)<4 
                 or len(re.sub('j|a', '',x))==0 # quitar todos los jajajajajaja
                 else 0
                 )
-            
+
             # quedarse sin palabras de mas 
             df2_palabras=df2_palabras.loc[df2_palabras['StopWord']==0,['Emisor','palabra']]
-            
+
             # crear bista agrupada 
             df2_palabras_Agg=df2_palabras.groupby(['Emisor','palabra']).agg(
                 Conteo = pd.NamedAgg(column = 'palabra', aggfunc = len)
                 )
             df2_palabras_Agg.reset_index(level=df2_palabras_Agg.index.names, inplace=True) # pasar indices a columnas
-        
+
 
             #__________________________________________________________________________________________________
             # Generar DF de interacciones 
 
             # crear tabla en blanco de interacciones a poblar posteriormente 
             df2_interaccion = pd.DataFrame(
-                data=[ 
-                    (i, j)
-                    for i in df2['Emisor'].unique()
-                    for j in df2['Emisor'].unique() 
-                    ], 
+                data=[
+                (i, j)
+                for i in df2['Emisor'].unique()
+                for j in df2['Emisor'].unique() 
+                ], 
                 columns=['quien_envia','quien_responde']
                 )
 
@@ -410,29 +366,29 @@ def main():
                 data=[i for i in df2['Emisor'].unique()], 
                 columns=['Emisor']
                 )
-            
+
             df2_monologo['N']=0
 
 
             # recorrer df rescatando casos de interacciones 
             for i in range(1,df2.shape[0]):
-                
+                    
                 quien_envia = df2.iloc[i-1,2]
                 quien_responde = df2.iloc[i,2]
                 
                 fecha_envia = df2.iloc[i-1,0]
                 fecha_responde = df2.iloc[i,0]
                 
-                if quien_envia!=quien_responde and fecha_envia==fecha_responde:
-                    
+                if quien_envia!=quien_responde and fecha_envia==fecha_responde: 
+                
                     df2_interaccion.loc[
                         (df2_interaccion['quien_envia']==quien_envia) & 
                         (df2_interaccion['quien_responde']==quien_responde),
                         'N'
                         ]+=1
                 
-                if quien_envia==quien_responde and fecha_envia==fecha_responde:
-                    
+                if quien_envia==quien_responde and fecha_envia==fecha_responde:  
+                
                     df2_monologo.loc[
                         (df2_monologo['Emisor']==quien_envia),
                         'N'
@@ -444,7 +400,7 @@ def main():
 
             # ordenar base de monologos 
             df2_monologo = df2_monologo.sort_values(by=['N'], ascending=False)
-            
+
             # Pegar variable de N_Msj_Seguidos en DF agregado 
             df2_AGG_Resumen=pd.merge(
                 df2_AGG_Resumen, 
@@ -452,17 +408,18 @@ def main():
                 on='Emisor', 
                 how='left'
                 )
-            
+
             # renombrar variable 
             df2_AGG_Resumen.rename(columns={'N':'N_Msj_Seguidos'}, inplace=True)
 
             return df2, df2_AGG_Resumen,df2_palabras,df2_palabras_Agg,df2_interaccion,df2_monologo
 
+
  #-------------------------------------------------------------------------------------------------------------
  # [01.2] Invocar funcion para generar DFs 
  #-------------------------------------------------------------------------------------------------------------   
 
-        df2, df2_AGG_Resumen,df2_palabras,df2_palabras_Agg,df2_interaccion,df2_monologo = tratamiento_txt_df(Archivo)
+        df2,df2_AGG_Resumen,df2_palabras,df2_palabras_Agg,df2_interaccion,df2_monologo = tratamiento_txt_df(Archivo)
 
 
  #=============================================================================================================
@@ -493,23 +450,23 @@ def main():
             df2.loc[
                 (df2['Mensaje'].str.lower().str.contains(str.lower(texto_filtro))) | 
                 (df2['Emisor'].str.lower().str.contains(str.lower(texto_filtro))) | 
-                (df2['Fecha'].str.lower().str.contains(str.lower(texto_filtro))),
+                (df2['Fecha'].astype(str).str.lower().str.contains(str.lower(texto_filtro))),
                 ['Fecha','Hora','Emisor','Mensaje']
                 ]
             )
         
         # dejar disponible para descagar df
         st.download_button(
-            "Presiona para descargar tabla",
+            'Presiona para descargar tabla',
             df2.loc[
                 (df2['Mensaje'].str.lower().str.contains(str.lower(texto_filtro))) | 
                 (df2['Emisor'].str.lower().str.contains(str.lower(texto_filtro))) | 
-                (df2['Fecha'].str.lower().str.contains(str.lower(texto_filtro))),
+                (df2['Fecha'].astype(str).str.lower().str.contains(str.lower(texto_filtro))),
                 ['Fecha','Hora','Emisor','Mensaje']
                 ].to_csv().encode('utf-8'),
-            "Detalle.csv",
-            "text/csv",
-            key='download-csv'
+            'Detalle.csv',
+            'text/csv',
+            key='download-csv1'
             )
            
     
@@ -538,7 +495,7 @@ def main():
                 ].to_csv().encode('utf-8'),
             "Resumen.csv",
             "text/csv",
-            key='download-csv'
+            key='download-csv2'
             )
 
 
@@ -651,7 +608,7 @@ def main():
                     
             # Crear variable a considerar 
             if metrica == 'Hora':
-                Var_medir = 'Hora2'
+                Var_medir = 'Hora'
             elif metrica == 'Dia':
                 Var_medir = 'dia_sem'
             else:
@@ -870,7 +827,7 @@ def main():
             'Seleccionar Variables',
             df2_AGG_Resumen.select_dtypes([np.number]).columns,
             ['N_Mensajes','N_Dias','N_Palabras','Mjs_x_dia','Palabras_x_Mjs'],
-            key = 1
+            key = 2
             )
         
  #-------------------------------------------------------------------------------------------------------------
@@ -958,7 +915,7 @@ def main():
             'Seleccionar Emisores',
             ['TOTAL']+list(df2_AGG_Resumen['Emisor'].unique()),
             ['TOTAL']+list(df2_AGG_Resumen['Emisor'].unique())[0:3],
-            key = 2
+            key = 3
             )
 
  #-------------------------------------------------------------------------------------------------------------
@@ -1286,11 +1243,11 @@ def main():
         
         # dejar disponible para descagar df
         st.download_button(
-            "Presiona para descargar tabla",
+            'Presiona para descargar tabla',
             df_reglas.to_csv().encode('utf-8'),
-            "Reglas.csv",
-            "text/csv",
-            key='download-csv'
+            'Reglas.csv',
+            'text/csv',
+            key='download-csv3'
             )
             
 
@@ -1453,11 +1410,11 @@ def main():
         
         # dejar disponible para descagar df
         st.download_button(
-            "Presiona para descargar tabla",
+            'Presiona para descargar tabla',
             df2_AGG_Resumen_KM.to_csv().encode('utf-8'),
-            "Detalle_k_means.csv",
-            "text/csv",
-            key='download-csv'
+            'Detalle_k_means.csv',
+            'text/csv',
+            key='download-csv4'
             )
 
  #____________________________________
@@ -1548,6 +1505,5 @@ def main():
 if __name__=='__main__':
     main()
     
-# Escribir en terminal: streamlit run App_chat_WSP_V20221225.py
-# !streamlit run App_chat_WSP_V20221225.py
-
+# Escribir en terminal: streamlit run App_chat_WSP_V20230311.py
+# !streamlit run App_chat_WSP_V20230311.py
